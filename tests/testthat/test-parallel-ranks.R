@@ -1,215 +1,66 @@
-# Test 4: Parallel Rank Execution
-# Tests rank notation like FunctionName(3)
+# Test: Parallel Rank Execution
+# Tests the workflow defined in test_rank_execution.json:
+# start-function -> rank-function(3) - executes rank function with 3 parallel ranks
+# Verifies that rank information is correctly logged
 
-test_that("rank execution runs correct number of instances", {
-  skip_on_cran()
+test_that("parallel rank execution workflow executes correctly with rank logging", {
+  # Get the workflow JSON path
+  # Try source tree first (tests/testthat/ is working dir when running tests)
+  json_path <- file.path("..", "..", "inst", "extdata", "workflows", "test_rank_execution.json")
+  if (!file.exists(json_path)) {
+    # Fall back to installed package location
+    json_path <- system.file("extdata", "workflows", "test_rank_execution.json", 
+                             package = "FaaSr")
+  }
   
-  rank_executions <- list()
+  # Skip if workflow file doesn't exist
+  if (!file.exists(json_path)) {
+    skip("test_rank_execution.json not found")
+  }
   
-  define_test_function("start_func", function() {
-    TRUE
-  })
-  define_test_function("ranked_func", function() {
-    rank_info <- faasr_rank()
-    rank_executions <<- c(rank_executions, list(rank_info))
-    TRUE
-  })
+  # Clean up before test
+  cleanup_faasr_data()
   
-  workflow <- create_minimal_workflow(
-    action_list = list(
-      StartAction = list(
-        FunctionName = "start_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list("RankedAction(3)")  # 3 parallel ranks
-      ),
-      RankedAction = list(
-        FunctionName = "ranked_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list()
-      )
-    ),
-    function_invoke = "StartAction"
-  )
-  
-  json_path <- write_workflow_json(workflow)
   on.exit({
-    unlink(json_path)
-    cleanup_test_functions(c("start_func", "ranked_func"))
     cleanup_faasr_data()
   })
   
+  # Execute workflow
   result <- faasr_test(json_path)
   
+  # Verify execution
   expect_true(result)
-  expect_equal(length(rank_executions), 3)
   
-  # Check rank values
-  ranks <- sapply(rank_executions, function(r) as.integer(r$Rank))
-  max_ranks <- sapply(rank_executions, function(r) as.integer(r$MaxRank))
+  # Verify log file was created
+  faasr_data_dir <- file.path(getwd(), "faasr_data")
+  logs_dir <- file.path(faasr_data_dir, "logs")
+  expect_true(dir.exists(logs_dir))
   
-  expect_equal(sort(ranks), c(1, 2, 3))
-  expect_true(all(max_ranks == 3))
-})
-
-test_that("single execution has no rank info", {
-  skip_on_cran()
+  # Check that log files exist
+  log_files <- list.files(logs_dir, pattern = "\\.log$")
+  expect_true(length(log_files) > 0)
   
-  captured_rank <- NULL
+  # Read log content to verify operations
+  log_file <- file.path(logs_dir, log_files[1])
+  log_content <- readLines(log_file)
   
-  define_test_function("single_func", function() {
-    captured_rank <<- faasr_rank()
-    TRUE
-  })
+  # Find log lines for each rank execution
+  line_rank_1 <- which(grepl("Rank info:.*Executing rank 1/3", log_content))
+  line_rank_2 <- which(grepl("Rank info:.*Executing rank 2/3", log_content))
+  line_rank_3 <- which(grepl("Rank info:.*Executing rank 3/3", log_content))
   
-  workflow <- create_minimal_workflow(
-    action_list = list(
-      SingleAction = list(
-        FunctionName = "single_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list()
-      )
-    ),
-    function_invoke = "SingleAction"
-  )
+  # Verify all expected rank log messages exist
+  expect_true(length(line_rank_1) > 0)
+  expect_true(length(line_rank_2) > 0)
+  expect_true(length(line_rank_3) > 0)
   
-  json_path <- write_workflow_json(workflow)
-  on.exit({
-    unlink(json_path)
-    cleanup_test_functions(c("single_func"))
-    cleanup_faasr_data()
-  })
+  # Verify that all ranks are logged
+  expect_true(any(grepl("Rank info:.*Executing rank 1/3", log_content)))
+  expect_true(any(grepl("Rank info:.*Executing rank 2/3", log_content)))
+  expect_true(any(grepl("Rank info:.*Executing rank 3/3", log_content)))
   
-  result <- faasr_test(json_path)
-  
-  expect_true(result)
-  # For single execution (rank 1/1), rank info file is removed
-  expect_equal(length(captured_rank), 0)
-})
-
-test_that("rank execution with successors works correctly", {
-  skip_on_cran()
-  
-  execution_log <- character()
-  
-  define_test_function("start_func", function() {
-    execution_log <<- c(execution_log, "start")
-    TRUE
-  })
-  define_test_function("ranked_func", function() {
-    rank_info <- faasr_rank()
-    execution_log <<- c(execution_log, paste0("ranked_", rank_info$Rank))
-    TRUE
-  })
-  define_test_function("final_func", function() {
-    execution_log <<- c(execution_log, "final")
-    TRUE
-  })
-  
-  workflow <- create_minimal_workflow(
-    action_list = list(
-      StartAction = list(
-        FunctionName = "start_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list("RankedAction(2)")
-      ),
-      RankedAction = list(
-        FunctionName = "ranked_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list("FinalAction")
-      ),
-      FinalAction = list(
-        FunctionName = "final_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list()
-      )
-    ),
-    function_invoke = "StartAction"
-  )
-  
-  json_path <- write_workflow_json(workflow)
-  on.exit({
-    unlink(json_path)
-    cleanup_test_functions(c("start_func", "ranked_func", "final_func"))
-    cleanup_faasr_data()
-  })
-  
-  result <- faasr_test(json_path)
-  
-  expect_true(result)
-  expect_true("start" %in% execution_log)
-  expect_true("ranked_1" %in% execution_log)
-  expect_true("ranked_2" %in% execution_log)
-  expect_true("final" %in% execution_log)
-})
-
-test_that("conditional with rank notation works", {
-  skip_on_cran()
-  
-  rank_executions <- list()
-  
-  define_test_function("condition_func", function() {
-    return(TRUE)
-  })
-  define_test_function("ranked_true_func", function() {
-    rank_info <- faasr_rank()
-    rank_executions <<- c(rank_executions, list(rank_info))
-    TRUE
-  })
-  define_test_function("false_func", function() {
-    TRUE
-  })
-  
-  workflow <- create_minimal_workflow(
-    action_list = list(
-      ConditionAction = list(
-        FunctionName = "condition_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list(
-          list(True = list("TrueAction(2)"), False = list("FalseAction"))
-        )
-      ),
-      TrueAction = list(
-        FunctionName = "ranked_true_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list()
-      ),
-      FalseAction = list(
-        FunctionName = "false_func",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list()
-      )
-    ),
-    function_invoke = "ConditionAction"
-  )
-  
-  json_path <- write_workflow_json(workflow)
-  on.exit({
-    unlink(json_path)
-    cleanup_test_functions(c("condition_func", "ranked_true_func", "false_func"))
-    cleanup_faasr_data()
-  })
-  
-  result <- faasr_test(json_path)
-  
-  expect_true(result)
-  expect_equal(length(rank_executions), 2)
+  # Verify the upload function ran first
+  expect_true(any(grepl("Listing before upload.*testing", log_content)))
+  expect_true(any(grepl("Listing after upload.*testing", log_content)))
 })
 

@@ -21,14 +21,23 @@ faasr_test <- function(json_path) {
   if (is.null(wf$ActionList)) stop("Invalid workflow JSON: missing required field 'ActionList'")
   if (is.null(wf$FunctionInvoke)) stop("Invalid workflow JSON: missing required field 'FunctionInvoke'")
 
+  # Find package root (works from source tree or test directory)
+  pkg_root <- getwd()
+  # If running from tests/testthat, go up two levels
+  if (basename(dirname(pkg_root)) == "tests" && basename(pkg_root) == "testthat") {
+    pkg_root <- dirname(dirname(pkg_root))
+  }
+  
   # Source user R files from multiple locations (in priority order):
-  # 1. Current working directory R/ folder (user's functions)
-  # 2. Package's inst/extdata/functions/ (example functions shipped with package)
+  # 1. Package root R/ folder (user's functions)
+  # 2. inst/extdata/functions/ in source tree (example functions)
+  # 3. Package's inst/extdata/functions/ if installed (fallback)
   src_dirs <- c(
-    file.path(getwd(), "R"),
-    system.file("extdata", "functions", package = "FaaSrLocal", mustWork = FALSE)
+    file.path(pkg_root, "R"),
+    file.path(pkg_root, "inst", "extdata", "functions"),
+    system.file("extdata", "functions", package = "FaaSr", mustWork = FALSE)
   )
-  # Remove empty paths (e.g., if package is not installed) and non-existent dirs
+  # Remove empty paths and non-existent dirs
   src_dirs <- src_dirs[nzchar(src_dirs) & dir.exists(src_dirs)]
   for (d in src_dirs) {
     rfiles <- list.files(d, pattern = "\\.R$", full.names = TRUE)
@@ -142,7 +151,6 @@ faasr_test <- function(json_path) {
     run_dir <- file.path(temp_dir, action_name)
     if (!dir.exists(run_dir)) dir.create(run_dir, recursive = TRUE)
     orig_wd <- getwd()
-    on.exit(setwd(orig_wd), add = TRUE)
     Sys.setenv(FAASR_DATA_ROOT = faasr_data_wd)
     setwd(run_dir)
 
@@ -151,9 +159,13 @@ faasr_test <- function(json_path) {
     res <- try(do.call(f, args), silent = TRUE)
     if (inherits(res, "try-error")) {
       cli::cli_alert_danger(as.character(res))
+      setwd(orig_wd)  # Restore before stopping
       stop(sprintf("Error executing %s", func_name))
     }
 
+    # Restore working directory after execution
+    setwd(orig_wd)
+    
     # Mark this execution as complete
     completed <- c(completed, exec_key)
 

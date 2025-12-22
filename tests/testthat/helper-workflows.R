@@ -2,6 +2,13 @@
 
 # Create a minimal valid workflow JSON for testing
 create_minimal_workflow <- function(action_list, function_invoke = names(action_list)[1]) {
+  # Create function git repo mapping for all functions
+  function_names <- unique(sapply(action_list, function(a) a$FunctionName))
+  function_git_repo <- setNames(
+    lapply(function_names, function(x) "test/test-repo"),
+    function_names
+  )
+  
   list(
     ComputeServers = list(
       TestServer = list(
@@ -28,7 +35,7 @@ create_minimal_workflow <- function(action_list, function_invoke = names(action_
       lapply(names(action_list), function(x) "test-container"),
       names(action_list)
     ),
-    FunctionGitRepo = list(),
+    FunctionGitRepo = function_git_repo,
     FunctionInvoke = function_invoke,
     InvocationID = "TEST_INVOCATION_ID",
     FaaSrLog = "FaaSrLog",

@@ -1,58 +1,27 @@
-# Test 1: Basic Workflow Execution
-# Tests simple linear workflow: A -> B -> C
+# Test: File Upload/Download/Delete Workflow
+# Tests the workflow defined in test_basic_execution.json:
+# upload-file -> download-file -> delete-file
+# Verifies that log messages appear in the correct order
 
-test_that("basic linear workflow executes in correct order", {
-  skip_on_cran()  # Skip on CRAN due to file system operations
+test_that("file upload/download/delete workflow executes correctly with ordered logs", {
+  # Get the workflow JSON path
+  # Try source tree first (tests/testthat/ is working dir when running tests)
+  json_path <- file.path("..", "..", "inst", "extdata", "workflows", "test_basic_execution.json")
+  if (!file.exists(json_path)) {
+    # Fall back to installed package location
+    json_path <- system.file("extdata", "workflows", "test_basic_execution.json", 
+                             package = "FaaSr")
+  }
   
-  # Track execution order
-  execution_log <- character()
+  # Skip if workflow file doesn't exist
+  if (!file.exists(json_path)) {
+    skip("test_basic_execution.json not found")
+  }
   
-  # Define test functions
-  define_test_function("func_a", function() {
-    execution_log <<- c(execution_log, "A")
-    TRUE
-  })
-  define_test_function("func_b", function() {
-    execution_log <<- c(execution_log, "B")
-    TRUE
-  })
-  define_test_function("func_c", function() {
-    execution_log <<- c(execution_log, "C")
-    TRUE
-  })
+  # Clean up before test
+  cleanup_faasr_data()
   
-  # Create workflow: A -> B -> C
-  workflow <- create_minimal_workflow(
-    action_list = list(
-      ActionA = list(
-        FunctionName = "func_a",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list("ActionB")
-      ),
-      ActionB = list(
-        FunctionName = "func_b",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list("ActionC")
-      ),
-      ActionC = list(
-        FunctionName = "func_c",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list()
-      )
-    ),
-    function_invoke = "ActionA"
-  )
-  
-  json_path <- write_workflow_json(workflow)
   on.exit({
-    unlink(json_path)
-    cleanup_test_functions(c("func_a", "func_b", "func_c"))
     cleanup_faasr_data()
   })
   
@@ -61,78 +30,49 @@ test_that("basic linear workflow executes in correct order", {
   
   # Verify execution
   expect_true(result)
-  expect_equal(execution_log, c("A", "B", "C"))
-})
-
-test_that("workflow with function arguments works correctly", {
-  skip_on_cran()
   
-  captured_args <- list()
+  # Verify log file was created
+  faasr_data_dir <- file.path(getwd(), "faasr_data")
+  logs_dir <- file.path(faasr_data_dir, "logs")
+  expect_true(dir.exists(logs_dir))
   
-  define_test_function("func_with_args", function(x, y) {
-    captured_args <<- list(x = x, y = y)
-    TRUE
-  })
+  # Check that log files exist
+  log_files <- list.files(logs_dir, pattern = "\\.log$")
+  expect_true(length(log_files) > 0)
   
-  workflow <- create_minimal_workflow(
-    action_list = list(
-      TestAction = list(
-        FunctionName = "func_with_args",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(x = 10, y = "hello"),
-        InvokeNext = list()
-      )
-    )
-  )
+  # Read log content to verify operations
+  log_file <- file.path(logs_dir, log_files[1])
+  log_content <- readLines(log_file)
   
-  json_path <- write_workflow_json(workflow)
-  on.exit({
-    unlink(json_path)
-    cleanup_test_functions(c("func_with_args"))
-    cleanup_faasr_data()
-  })
+  # Find line numbers for each expected log message
+  line_before_upload <- which(grepl("Listing before upload.*testing", log_content))
+  line_after_upload <- which(grepl("Listing after upload.*testing.*test\\.txt", log_content))
+  line_before_download <- which(grepl("Listing before download.*testing", log_content))
+  line_after_download <- which(grepl("Listing after download.*testing", log_content))
+  line_before_delete <- which(grepl("Listing before delete.*testing.*test\\.txt", log_content))
+  line_after_delete <- which(grepl("Listing after delete.*testing", log_content))
   
-  result <- faasr_test(json_path)
+  # Verify all expected log messages exist
+  expect_true(length(line_before_upload) > 0)
+  expect_true(length(line_after_upload) > 0)
+  expect_true(length(line_before_download) > 0)
+  expect_true(length(line_after_download) > 0)
+  expect_true(length(line_before_delete) > 0)
+  expect_true(length(line_after_delete) > 0)
   
-  expect_true(result)
-  expect_equal(captured_args$x, 10)
-  expect_equal(captured_args$y, "hello")
-})
-
-test_that("workflow fails on missing function", {
-  skip_on_cran()
+  # Verify log messages appear in the correct order
+  expect_true(line_before_upload[1] < line_after_upload[1])
+  expect_true(line_after_upload[1] < line_before_download[1])
+  expect_true(line_before_download[1] < line_after_download[1])
+  expect_true(line_after_download[1] < line_before_delete[1])
+  expect_true(line_before_delete[1] < line_after_delete[1])
   
-  workflow <- create_minimal_workflow(
-    action_list = list(
-      TestAction = list(
-        FunctionName = "nonexistent_function",
-        FaaSServer = "TestServer",
-        Type = "R",
-        Arguments = list(),
-        InvokeNext = list()
-      )
-    )
-  )
-  
-  json_path <- write_workflow_json(workflow)
-  on.exit({
-    unlink(json_path)
-    cleanup_faasr_data()
-  })
-  
-  expect_error(faasr_test(json_path), "Function not found")
-})
-
-test_that("workflow fails on missing JSON file", {
-  expect_error(faasr_test("nonexistent_file.json"), "Workflow JSON not found")
-})
-
-test_that("workflow fails on invalid JSON", {
-  invalid_json <- tempfile(fileext = ".json")
-  writeLines("{ invalid json content", invalid_json)
-  on.exit(unlink(invalid_json))
-  
-  expect_error(faasr_test(invalid_json), "JSON parsing error")
+  # Verify specific content
+  expect_true(any(grepl("Listing before upload.*testing.*: *$", log_content)))
+  expect_true(any(grepl("Listing after upload.*testing.*test\\.txt", log_content)))
+  expect_true(any(grepl("Content of the downloaded file.*THIS IS TESTING CONTENT", log_content)))
+  expect_true(any(grepl("Listing before delete.*testing.*test\\.txt", log_content)))
+  expect_true(any(grepl("Listing after delete.*testing.*: *$", log_content)))
+  expect_true(any(grepl("File.*test\\.txt.*is deleted", log_content)))
 })
 

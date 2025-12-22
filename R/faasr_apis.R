@@ -219,7 +219,7 @@ faasr_rank <- function() {
     return(list())
   }
   
-  # Parse rank_info which is in format "1/3"
+  # Parse rank_info which is in format "currentRank/maxRank"
   parts <- unlist(strsplit(rank_info[1], "[/]"))
   if (length(parts) == 2) {
     return(list(Rank = parts[1], MaxRank = parts[2]))

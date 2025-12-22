@@ -1,6 +1,6 @@
-# FaaSrLocal 1.0.0
+# FaaSr 2.0.0
 
-This is the initial CRAN release of FaaSrLocal, providing a local execution environment for FaaSr workflows.
+This is the updated CRAN release of FaaSr, providing a local execution environment for FaaSr workflows. Previous version cloud execution has been migrated, see https://faasr.io/
 
 ## Major Features
 
@@ -26,5 +26,5 @@ This is the initial CRAN release of FaaSrLocal, providing a local execution envi
 
 ## Notes
 
-This package is designed to mirror the FaaSr API for seamless development and testing of workflows before deploying to cloud Function-as-a-Service platforms.
+This package is designed to mirror the FaaSr workflow for seamless development and testing of workflows before deploying to cloud Function-as-a-Service platforms.
 

@@ -1,7 +1,7 @@
 # This file is part of the standard testthat setup
 
 library(testthat)
-library(FaaSrLocal)
+library(FaaSr)
 
-test_check("FaaSrLocal")
+test_check("FaaSr")
 

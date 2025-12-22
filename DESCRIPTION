@@ -1,15 +1,9 @@
-Package: FaaSrLocal
+Package: FaaSr
 Title: Local Execution Environment for FaaSr Workflows
-Version: 1.0.0
+Version: 2.0.0
 Authors@R: c(
     person("FaaSr", "Development Team", email = "faasr@example.com", role = c("aut", "cre")))
-Description: Provides a local execution environment for testing and developing
-    FaaSr workflows without requiring cloud infrastructure. This package enables
-    users to run FaaSr-compatible workflows on their local machine, with support
-    for conditional branching, parallel rank execution, and workflow validation.
-    It mirrors the FaaSr API for file operations, logging, and rank management,
-    making it easy to develop and test workflows before deploying to cloud
-    Function-as-a-Service platforms.
+Description: Provides a local execution environment for testing and developing FaaSr workflows without requiring cloud infrastructure. This package enables users to run FaaSr-compatible workflows on their local machine, with support for conditional branching, parallel rank execution, and workflow validation. It mirrors the FaaSr workflow for file operations, logging, and rank management,making it easy to develop and test workflows before deploying to cloud Function-as-a-Service platforms.
 License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
