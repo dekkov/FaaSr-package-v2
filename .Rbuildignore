@@ -1,0 +1,11 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^cran-comments\.md$
+^\.github$
+^faasr_data$
+^test-.*\.md$
+^schema\.json$
+^\.cursor$
+

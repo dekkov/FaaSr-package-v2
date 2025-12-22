@@ -1,4 +1,4 @@
-# Test function that demonstrates rank functionality
+# Test function that demonstrates conditional branching
 return_output <- function(condition = TRUE) {
 
   if (condition) {

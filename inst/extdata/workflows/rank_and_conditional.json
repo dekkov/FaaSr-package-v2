@@ -28,14 +28,7 @@
         "condition": false
       },
       "InvokeNext": [
-        {
-          "True": [
-            "ranked-function(3)"
-          ],
-          "False": [
-            "branch"
-          ]
-        }
+        {"True": ["ranked-function(3)"], "False": ["final-function"]}
       ]
     },
     "ranked-function": {
@@ -54,18 +47,9 @@
       "FaaSServer": "My_GitHub_Account",
       "Type": "R",
       "Arguments": {
-        "message": "final function"
+        "message": "Final function"
       },
       "InvokeNext": []
-    },
-    "branch": {
-      "FunctionName": "return_output",
-      "FaaSServer": "My_GitHub_Account",
-      "Type": "R",
-      "Arguments": {
-        "condition": true
-      },
-      "InvokeNext": ["final-function"]
     }
   },
   "ActionContainers": {
@@ -84,3 +68,4 @@
   "DefaultDataStore": "My_Minio_Bucket",
   "WorkflowName": "rank-test"
 }
+

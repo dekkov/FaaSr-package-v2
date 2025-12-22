@@ -5,6 +5,8 @@
 #' and predecessor dependencies without precomputation.
 #' @param json_path path to workflow JSON
 #' @return TRUE if all functions run successfully; stops on error
+#' @importFrom jsonlite fromJSON toJSON
+#' @importFrom cli cli_h2 cli_alert_success cli_alert_danger
 #' @export
 faasr_test <- function(json_path) {
   if (!file.exists(json_path)) stop(sprintf("Workflow JSON not found: %s", json_path))
@@ -19,14 +21,19 @@ faasr_test <- function(json_path) {
   if (is.null(wf$ActionList)) stop("Invalid workflow JSON: missing required field 'ActionList'")
   if (is.null(wf$FunctionInvoke)) stop("Invalid workflow JSON: missing required field 'FunctionInvoke'")
 
-  # Source user and local API R files
-  src_dirs <- c(file.path("faasr_data", "R"), "R")
+  # Source user R files from multiple locations (in priority order):
+  # 1. Current working directory R/ folder (user's functions)
+  # 2. Package's inst/extdata/functions/ (example functions shipped with package)
+  src_dirs <- c(
+    file.path(getwd(), "R"),
+    system.file("extdata", "functions", package = "FaaSrLocal", mustWork = FALSE)
+  )
+  # Remove empty paths (e.g., if package is not installed) and non-existent dirs
+  src_dirs <- src_dirs[nzchar(src_dirs) & dir.exists(src_dirs)]
   for (d in src_dirs) {
-    if (dir.exists(d)) {
-      rfiles <- list.files(d, pattern = "\\.R$", full.names = TRUE)
-      for (f in rfiles) {
-        try(source(f, local = .GlobalEnv), silent = TRUE)
-      }
+    rfiles <- list.files(d, pattern = "\\.R$", full.names = TRUE)
+    for (f in rfiles) {
+      try(source(f, local = .GlobalEnv), silent = TRUE)
     }
   }
 
