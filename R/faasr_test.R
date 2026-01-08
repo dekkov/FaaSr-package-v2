@@ -28,14 +28,12 @@ faasr_test <- function(json_path) {
     pkg_root <- dirname(dirname(pkg_root))
   }
   
-  # Source user R files from multiple locations (in priority order):
-  # 1. Package root R/ folder (user's functions)
-  # 2. inst/extdata/functions/ in source tree (example functions)
-  # 3. Package's inst/extdata/functions/ if installed (fallback)
+  # Source user function
   src_dirs <- c(
+    system.file("extdata", "functions", package = "FaaSr", mustWork = FALSE), #for testthat
+    file.path(pkg_root, "inst", "extdata", "functions"), #for testthat
     file.path(pkg_root, "R"),
-    file.path(pkg_root, "inst", "extdata", "functions"),
-    system.file("extdata", "functions", package = "FaaSr", mustWork = FALSE)
+    file.path(getwd(), "faasr_data", "functions")
   )
   # Remove empty paths and non-existent dirs
   src_dirs <- src_dirs[nzchar(src_dirs) & dir.exists(src_dirs)]
@@ -58,7 +56,12 @@ faasr_test <- function(json_path) {
   if (!dir.exists(files_dir)) dir.create(files_dir, recursive = TRUE)
 
   # Generate and write invocation ID
-  invocation_id <- .faasr_generate_invocation_id(wf)
+  # Ensure InvocationID from JSON is used if present
+  if (!is.null(wf[["InvocationID"]]) && nzchar(trimws(wf[["InvocationID"]]))) {
+    invocation_id <- trimws(wf[["InvocationID"]])
+  } else {
+    invocation_id <- .faasr_generate_invocation_id(wf)
+  }
   .faasr_write_invocation_id(invocation_id, state_dir)
 
   # Clean files outputs
@@ -290,13 +293,14 @@ faasr_test <- function(json_path) {
 #' @keywords internal
 .faasr_generate_invocation_id <- function(wf) {
   # Priority 1: Check if InvocationID is already set in the workflow
-  if (!is.null(wf$InvocationID) && nzchar(trimws(wf$InvocationID))) {
-    return(trimws(wf$InvocationID))
+  inv_id <- wf[["InvocationID"]]
+  if (!is.null(inv_id) && nzchar(trimws(inv_id))) {
+    return(trimws(inv_id))
   }
 
   # Priority 2: Check if InvocationIDFromDate format is specified and valid
-  if (!is.null(wf$InvocationIDFromDate) && nzchar(trimws(wf$InvocationIDFromDate))) {
-    date_format <- trimws(wf$InvocationIDFromDate)
+  if (!is.null(wf[["InvocationIDFromDate"]]) && nzchar(trimws(wf[["InvocationIDFromDate"]]))) {
+    date_format <- trimws(wf[["InvocationIDFromDate"]])
     # Validate the date format by checking if it contains valid format specifiers
     # Valid format specifiers are % followed by letters (Y, m, d, H, M, S, etc.)
     if (!grepl("^[%a-zA-Z0-9\\s:._-]+$", date_format) || !grepl("%[a-zA-Z]", date_format)) {
@@ -304,26 +308,20 @@ faasr_test <- function(json_path) {
     }
 
     # Try to use the format and validate the result
-    tryCatch({
-      test_result <- format(Sys.time(), date_format)
-      if (nzchar(test_result) && test_result != date_format) {
-        return(test_result)
-      } else {
-        stop("Invalid date format - no valid date specifiers found")
-      }
-    }, error = function(e) {
-      stop(sprintf("Invalid InvocationIDFromDate format '%s': %s", date_format, e$message))
-    })
+    test_result <- format(Sys.time(), date_format)
+    return(test_result)
   }
-
-  # Priority 3: Generate UUID if both are blank or invalid
-  if (requireNamespace("uuid", quietly = TRUE)) {
+  else {
     return(uuid::UUIDgenerate())
-  } else {
-    # Fallback to timestamp-based ID if uuid package not available
-    paste0(format(Sys.time(), "%Y%m%d%H%M%S"), "-",
-           paste(sample(c(0:9, letters[1:6]), 8, replace = TRUE), collapse = ""))
   }
+  # # Priority 3: Generate UUID as fallback
+  # if (requireNamespace("uuid", quietly = TRUE)) {
+  #   return(uuid::UUIDgenerate())
+  # } else {
+  #   # Fallback to timestamp-based ID if uuid package not available
+  #   return(paste0(format(Sys.time(), "%Y%m%d%H%M%S"), "-",
+  #          paste(sample(c(0:9, letters[1:6]), 8, replace = TRUE), collapse = "")))
+  # }
 }
 
 #' @name .faasr_parse_invoke_next_string

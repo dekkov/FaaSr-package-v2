@@ -215,18 +215,20 @@ faasr_rank <- function() {
   }
   
   rank_info <- try(readLines(rank_file, warn = FALSE), silent = TRUE)
+  
   if (inherits(rank_info, "try-error") || length(rank_info) == 0) {
     return(list())
   }
   
   # Parse rank_info which is in format "currentRank/maxRank"
-  parts <- unlist(strsplit(rank_info[1], "[/]"))
+  parts <- unlist(strsplit(rank_info, "[/]"))
   if (length(parts) == 2) {
-    return(list(Rank = parts[1], MaxRank = parts[2]))
+    result <- list(rank = parts[1], max_rank = parts[2])
+    return(result)
   }
-  
-  return(list())
+
 }
+
 
 #' @name faasr_invocation_id
 #' @title Get the invocation ID for the current workflow
@@ -256,6 +258,6 @@ faasr_invocation_id <- function() {
   if (inherits(invocation_id, "try-error") || length(invocation_id) == 0) {
     return(NULL)
   }
-  
-  invocation_id[1]
+
+  return(invocation_id)
 }

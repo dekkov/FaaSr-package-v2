@@ -1,0 +1,358 @@
+---
+title: "Getting Started with FaaSr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with FaaSr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+FaaSr provides a local execution environment for testing and developing FaaSr workflows without requiring cloud infrastructure. This vignette demonstrates how to create and execute a simple workflow locally.
+
+## Installation
+
+```{r, eval = FALSE}
+# From CRAN (when released)
+install.packages("FaaSr")
+
+# From GitHub (development version)
+devtools::install_github("FaaSr/FaaSr-Local")
+```
+
+```{r setup}
+library(FaaSr)
+```
+
+## Creating Your First Workflow
+
+### Step 1: Set Up Your Project Structure
+
+First, create the recommended directory structure:
+
+```{r}
+# Create the faasr_data structure
+dir.create("faasr_data/functions", recursive = TRUE, showWarnings = FALSE)
+dir.create("faasr_data/workflows", recursive = TRUE, showWarnings = FALSE)
+
+# Define a simple data processing function
+process_data <- function() {
+  faasr_log("Starting data processing")
+  
+  # Create some sample data
+  data <- data.frame(
+    id = 1:10,
+    value = rnorm(10)
+  )
+  
+  # Save to a file
+  write.csv(data, "data.csv", row.names = FALSE)
+  
+  # Upload to storage
+  faasr_put_file(
+    local_file = "data.csv",
+    remote_folder = "output",
+    remote_file = "processed_data.csv"
+  )
+  
+  faasr_log("Data processing complete")
+  return(TRUE)
+}
+
+# Save the function to faasr_data/functions/
+writeLines(deparse(process_data), "faasr_data/functions/process_data.R")
+```
+
+**Note**: FaaSr automatically sources functions from `faasr_data/functions/` when executing workflows.
+
+### Step 2: Create a Workflow JSON
+
+Define your workflow structure in JSON format:
+
+```{r}
+library(jsonlite)
+
+workflow <- list(
+  FunctionInvoke = "process-data",
+  WorkflowName = "simple-data-workflow",
+  DefaultDataStore = "LocalStorage",
+  
+  ComputeServers = list(
+    LocalCompute = list(
+      FaaSType = "GitHubActions",
+      UserName = "test",
+      ActionRepoName = "test-repo"
+    )
+  ),
+  
+  DataStores = list(
+    LocalStorage = list(
+      Bucket = "my-bucket"
+    )
+  ),
+  
+  ActionList = list(
+    `process-data` = list(
+      FunctionName = "process_data",
+      FaaSServer = "LocalCompute",
+      Type = "R",
+      InvokeNext = list()
+    )
+  ),
+  
+  ActionContainers = list(
+    `process-data` = "rocker/r-base"
+  ),
+  
+  FunctionGitRepo = list(
+    process_data = "user/repo"
+  )
+)
+
+# Save workflow to faasr_data/workflows/
+write_json(workflow, "faasr_data/workflows/my_workflow.json", auto_unbox = TRUE, pretty = TRUE)
+```
+
+### Step 3: Execute the Workflow
+
+Run your workflow locally using `faasr_test()`:
+
+```{r, eval = FALSE}
+# Execute the workflow
+result <- faasr_test("faasr_data/workflows/my_workflow.json")
+
+# Check if execution was successful
+if (result) {
+  cat("Workflow executed successfully!\n")
+}
+```
+
+### Step 4: Check Results
+
+After execution, you can inspect the logs and files:
+
+```{r, eval = FALSE}
+# List log files
+log_files <- list.files("faasr_data/logs", pattern = "\\.log$", full.names = TRUE)
+
+# Read the log
+if (length(log_files) > 0) {
+  log_content <- readLines(log_files[1])
+  cat("Log content:\n")
+  cat(paste(log_content, collapse = "\n"))
+}
+
+# List uploaded files
+uploaded_files <- faasr_get_folder_list(faasr_prefix = "output/")
+cat("\nUploaded files:\n")
+print(uploaded_files)
+```
+
+## Working with Files
+
+FaaSr provides several functions for file operations:
+
+### Uploading Files
+
+```{r, eval = FALSE}
+# Upload a single file
+faasr_put_file(
+  local_file = "my_data.csv",
+  remote_folder = "input",
+  remote_file = "data.csv"
+)
+```
+
+### Downloading Files
+
+```{r, eval = FALSE}
+# Download a file
+faasr_get_file(
+  remote_folder = "output",
+  remote_file = "processed_data.csv",
+  local_file = "results.csv"
+)
+```
+
+### Listing Files
+
+```{r, eval = FALSE}
+# List all files in a folder
+files <- faasr_get_folder_list(faasr_prefix = "input/")
+print(files)
+```
+
+### Deleting Files
+
+```{r, eval = FALSE}
+# Delete a file
+faasr_delete_file(
+  remote_folder = "temp",
+  remote_file = "temporary.csv"
+)
+```
+
+## Conditional Branching
+
+FaaSr supports conditional execution based on function return values:
+
+```{r}
+# Define conditional function
+check_and_process <- function() {
+  data_available <- file.exists("input_data.csv")
+  faasr_log(paste("Data available:", data_available))
+  return(data_available)
+}
+
+# Create workflow with conditional branching
+conditional_workflow <- list(
+  FunctionInvoke = "check-data",
+  WorkflowName = "conditional-workflow",
+  DefaultDataStore = "LocalStorage",
+  
+  ComputeServers = list(
+    LocalCompute = list(
+      FaaSType = "GitHubActions",
+      UserName = "test",
+      ActionRepoName = "test-repo"
+    )
+  ),
+  
+  DataStores = list(
+    LocalStorage = list(Bucket = "my-bucket")
+  ),
+  
+  ActionList = list(
+    `check-data` = list(
+      FunctionName = "check_and_process",
+      FaaSServer = "LocalCompute",
+      Type = "R",
+      InvokeNext = list(
+        list(
+          True = list("process-data"),
+          False = list("error-handler")
+        )
+      )
+    ),
+    `process-data` = list(
+      FunctionName = "process_data",
+      FaaSServer = "LocalCompute",
+      Type = "R",
+      InvokeNext = list()
+    ),
+    `error-handler` = list(
+      FunctionName = "handle_error",
+      FaaSServer = "LocalCompute",
+      Type = "R",
+      InvokeNext = list()
+    )
+  ),
+  
+  ActionContainers = setNames(
+    rep("rocker/r-base", 3),
+    c("check-data", "process-data", "error-handler")
+  ),
+  
+  FunctionGitRepo = list(
+    check_and_process = "user/repo",
+    process_data = "user/repo",
+    handle_error = "user/repo"
+  )
+)
+```
+
+When the workflow executes, if `check_and_process()` returns `TRUE`, it will invoke `process-data`. If it returns `FALSE`, it will invoke `error-handler` instead.
+
+## Parallel Execution
+
+FaaSr supports parallel rank execution for data-parallel workflows:
+
+```{r}
+# Define a rank-aware function
+parallel_process <- function() {
+  rank_info <- faasr_rank()
+  
+  if (length(rank_info) > 0) {
+    rank <- as.integer(rank_info$Rank)
+    max_rank <- as.integer(rank_info$MaxRank)
+    
+    faasr_log(sprintf("Processing rank %d of %d", rank, max_rank))
+    
+    # Process a subset of data based on rank
+    # ... your parallel processing code here ...
+    
+  } else {
+    faasr_log("Running in non-parallel mode")
+  }
+  
+  return(TRUE)
+}
+```
+
+To invoke a function with multiple ranks, use the `(N)` notation in `InvokeNext`:
+
+```{r}
+parallel_workflow <- list(
+  ActionList = list(
+    `start-action` = list(
+      FunctionName = "setup",
+      InvokeNext = list("parallel-action(4)")  # Run 4 parallel ranks
+    ),
+    `parallel-action` = list(
+      FunctionName = "parallel_process",
+      InvokeNext = list()
+    )
+  )
+)
+```
+
+## Project Organization
+
+Your FaaSr project should follow this structure:
+
+```
+my-project/
+├── faasr_data/
+│   ├── functions/          # Your custom R functions
+│   │   ├── process_data.R
+│   │   └── ...
+│   ├── workflows/          # Your workflow JSON files
+│   │   ├── my_workflow.json
+│   │   └── ...
+│   ├── files/              # Auto-created: file storage
+│   ├── logs/               # Auto-created: execution logs
+│   └── temp/               # Auto-created: temporary files
+```
+
+Functions in `faasr_data/functions/` are automatically sourced when you run `faasr_test()`.
+
+## Cleanup
+
+After testing, you can clean up the local storage:
+
+```{r, eval = FALSE}
+# Remove the faasr_data directory
+unlink("faasr_data", recursive = TRUE)
+```
+
+## Next Steps
+
+- Explore the [function reference](https://faasr.github.io/FaaSr-Local/reference/) for detailed documentation
+- Check out the example workflows in `inst/extdata/workflows/`
+- Learn about workflow validation and cycle detection
+- Deploy your tested workflows to cloud FaaS platforms
+
+## Getting Help
+
+- Report bugs at <https://github.com/FaaSr/FaaSr-Local/issues>
+- Ask questions on the FaaSr community forum
+- Read the full documentation at <https://faasr.github.io/FaaSr-Local/>
+
