@@ -1,3 +1,6 @@
+---
+output: github_document
+---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -14,30 +17,22 @@ status](https://www.r-pkg.org/badges/version/FaaSr)](https://cran.r-project.org/
 
 ## Overview
 
-**FaaSr-Local** provides a local execution environment for testing and
-developing [FaaSr](https://faasr.io) workflows without requiring cloud
-infrastructure. Test your workflows on your local machine before
-deploying to the cloud - no credentials, no cloud accounts, no cost.
+**FaaSr-Local** provides a local execution environment for testing and developing [FaaSr](https://faasr.io) workflows without requiring cloud infrastructure. Test your workflows on your local machine before deploying to the cloud - no credentials, no cloud accounts, no cost.
 
 FaaSr-Local enables you to:
 
-- **Test workflows locally** - Validate your FaaSr workflows before
-  cloud deployment
-- **No cloud required** - Run everything on your local machine without
-  any cloud credentials or accounts
-- **Simulated S3 storage** - File operations
-  (upload/download/delete/list) work with local filesystem
-- **Support advanced features** - Conditional branching (True/False
-  paths), parallel rank execution, and more
-- **Validate workflows** - JSON schema compliance checking and cycle
-  detection
-- **Debug easily** - Local logging for monitoring and troubleshooting
+* **Test workflows locally** - Validate your FaaSr workflows before cloud deployment
+* **No cloud required** - Run everything on your local machine without any cloud credentials or accounts
+* **Simulated S3 storage** - File operations (upload/download/delete/list) work with local filesystem
+* **Support advanced features** - Conditional branching (True/False paths), parallel rank execution, and more
+* **Validate workflows** - JSON schema compliance checking and cycle detection
+* **Debug easily** - Local logging for monitoring and troubleshooting
 
 ## Installation
 
 Install the development version from GitHub:
 
-``` r
+```r
 # install.packages("devtools")
 devtools::install_github("FaaSr/FaaSr-Local")
 ```
@@ -46,10 +41,9 @@ devtools::install_github("FaaSr/FaaSr-Local")
 
 ### 1. Create Your Project Structure
 
-FaaSr-Local automatically creates a `faasr_data/` directory to simulate
-cloud infrastructure:
+FaaSr-Local automatically creates a `faasr_data/` directory to simulate cloud infrastructure:
 
-``` r
+```r
 library(FaaSr)
 
 # Directory structure (created automatically):
@@ -65,13 +59,16 @@ library(FaaSr)
 
 ### 2. Test Your Workflow
 
-``` r
+```r
 # Execute your FaaSr workflow locally
 faasr_test("path/to/workflow.json")
 ```
 
-That’s it! Your workflow runs locally with full support for: -
-Conditional branching (True/False paths) - Parallel rank execution -
-File operations (simulated S3) - Logging and monitoring
+That's it! Your workflow runs locally with full support for:
+- Conditional branching (True/False paths)
+- Parallel rank execution
+- File operations (simulated S3)
+- Logging and monitoring
 
-For more information, visit <https://faasr.io>
+For more information, visit [https://faasr.io](https://faasr.io)
+

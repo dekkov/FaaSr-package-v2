@@ -6,6 +6,15 @@
 ^\.github$
 ^faasr_data$
 ^test-.*\.md$
-^schema\.json$
 ^\.cursor$
-
+^\.vscode$
+^\.idea$
+^\.DS_Store$
+^\.gitignore$
+^\.git$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.lintr$
+^codecov\.yml$
+^\.covrignore$

@@ -1,30 +1,41 @@
 # FaaSr 2.0.0
 
-This is the updated CRAN release of FaaSr, providing a local execution environment for FaaSr workflows. Previous version cloud execution has been migrated, see https://faasr.io/
+* (What to write here?)
 
-## Major Features
+# FaaSr 1.4.4
+* Support optional argument to S3 functions instead of global .faasr
+* Workflow cycle detection function now covers the entire DAG
 
-* **Workflow Execution Engine** (`faasr_test()`): Execute FaaSr-compatible workflows locally with support for:
-  - Sequential and parallel function execution
-  - Conditional branching (True/False paths based on function return values)
-  - Parallel rank execution with `FunctionName(N)` notation
-  - Automatic dependency tracking and execution ordering
+# FaaSr 1.4.3
+* Support triggering of multiple parallel executions from an action
+* Added faasr_rank() method to determine the rank of a parallel invocation
+* Support passing of payloads through API invocation for GitHub Actions
+* Improvement of faasr_s3_check() to support AWS S3 buckets
 
-* **FaaSr-Compatible API Functions**:
-  - `faasr_put_file()`: Upload files to local storage
-  - `faasr_get_file()`: Download files from local storage
-  - `faasr_delete_file()`: Delete files from local storage
-  - `faasr_get_folder_list()`: List files with optional prefix filtering
-  - `faasr_log()`: Append timestamped log messages
-  - `faasr_rank()`: Get current parallel rank information
-  - `faasr_invocation_id()`: Get workflow invocation ID
+# FaaSr 1.3.0
 
-* **Workflow Validation**:
-  - Cycle detection using depth-first search
-  - JSON schema validation (when `jsonvalidate` is available)
-  - Predecessor consistency checking
+* Support anonymous access to arrow/S3 buckets 
+* Self-abort on a timeout while waiting for a lock
+* Improve credential management in Rstudio
+* Add logging functions to faasr_client_tools.R
 
-## Notes
+# FaaSr 1.2.1
 
-This package is designed to mirror the FaaSr workflow for seamless development and testing of workflows before deploying to cloud Function-as-a-Service platforms.
+* Fix bugs for local execution functions.
 
+# FaaSr 1.2.0
+
+* Print the UUID and logs folder to help users locate logs when an action fails
+* Implement faasr_get_folder_list function to retrieve S3 folder contents as a list
+* Return without action failure on faasr_abort_on_multiple_invocations
+* Support local execution on client for development and debugging
+* Fixed bug that limited maximum memory size in AWS Lambda
+* Increased default size of /tmp storage in AWS Lambda
+
+# FaaSr 1.1.2
+
+* This version incorporates CRAN review feedback from initial submission
+
+# FaaSr 1.1.1
+
+* CRAN New Submission
