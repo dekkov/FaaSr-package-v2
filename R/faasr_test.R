@@ -314,14 +314,8 @@ faasr_test <- function(json_path) {
   else {
     return(uuid::UUIDgenerate())
   }
-  # # Priority 3: Generate UUID as fallback
-  # if (requireNamespace("uuid", quietly = TRUE)) {
-  #   return(uuid::UUIDgenerate())
-  # } else {
-  #   # Fallback to timestamp-based ID if uuid package not available
-  #   return(paste0(format(Sys.time(), "%Y%m%d%H%M%S"), "-",
-  #          paste(sample(c(0:9, letters[1:6]), 8, replace = TRUE), collapse = "")))
-  # }
+
+  
 }
 
 #' @name .faasr_parse_invoke_next_string

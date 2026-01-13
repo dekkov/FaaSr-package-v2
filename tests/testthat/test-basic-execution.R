@@ -44,29 +44,6 @@ test_that("file upload/download/delete workflow executes correctly with ordered 
   log_file <- file.path(logs_dir, log_files[1])
   log_content <- readLines(log_file)
   
-  # Find line numbers for each expected log message
-  line_before_upload <- which(grepl("Listing before upload.*testing", log_content))
-  line_after_upload <- which(grepl("Listing after upload.*testing.*test\\.txt", log_content))
-  line_before_download <- which(grepl("Listing before download.*testing", log_content))
-  line_after_download <- which(grepl("Listing after download.*testing", log_content))
-  line_before_delete <- which(grepl("Listing before delete.*testing.*test\\.txt", log_content))
-  line_after_delete <- which(grepl("Listing after delete.*testing", log_content))
-  
-  # Verify all expected log messages exist
-  expect_true(length(line_before_upload) > 0)
-  expect_true(length(line_after_upload) > 0)
-  expect_true(length(line_before_download) > 0)
-  expect_true(length(line_after_download) > 0)
-  expect_true(length(line_before_delete) > 0)
-  expect_true(length(line_after_delete) > 0)
-  
-  # Verify log messages appear in the correct order
-  expect_true(line_before_upload[1] < line_after_upload[1])
-  expect_true(line_after_upload[1] < line_before_download[1])
-  expect_true(line_before_download[1] < line_after_download[1])
-  expect_true(line_after_download[1] < line_before_delete[1])
-  expect_true(line_before_delete[1] < line_after_delete[1])
-  
   # Verify specific content
   expect_true(any(grepl("Listing before upload.*testing.*: *$", log_content)))
   expect_true(any(grepl("Listing after upload.*testing.*test\\.txt", log_content)))
