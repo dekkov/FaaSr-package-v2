@@ -1,5 +1,5 @@
 Type: Package
-Package: FaaSrLocal (need to be decided)
+Package: FaaSrLocal
 Title: FaaSr Local Test Development Package
 Version: 1.0.0
 Authors@R: c(person("Figueiredo", "Renato", role = c("aut", "cre", "ths", "cph"),
