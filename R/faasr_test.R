@@ -74,8 +74,15 @@ faasr_test <- function(json_path) {
     if (length(to_delete)) unlink(to_delete, recursive = TRUE, force = TRUE)
   }
 
-  # Download schema if needed (only if not present at repo root)
-  schema_repo_path <- file.path(getwd(), "schema.json")
+  # Find or download schema
+  # Try: 1) installed package, 2) source inst/, 3) working dir, 4) download
+  schema_repo_path <- system.file("schema.json", package = "FaaSrLocal", mustWork = FALSE)
+  if (!nzchar(schema_repo_path) || !file.exists(schema_repo_path)) {
+    schema_repo_path <- file.path(pkg_root, "inst", "schema.json")
+  }
+  if (!file.exists(schema_repo_path)) {
+    schema_repo_path <- file.path(getwd(), "schema.json")
+  }
   if (!file.exists(schema_repo_path)) {
     schema_url <- "https://raw.githubusercontent.com/FaaSr/FaaSr-Backend/main/FaaSr_py/FaaSr.schema.json"
     try(utils::download.file(schema_url, schema_repo_path, quiet = TRUE), silent = TRUE)
@@ -272,14 +279,15 @@ faasr_test <- function(json_path) {
 # Helper Functions
 # ============================================================================
 
-#' @name %||%
-#' @title Default value operator
-#' @description
+#' Default value operator
+#'
 #' Internal operator that returns the second argument if the first is NULL.
+#'
 #' @param x First argument to check
 #' @param y Default value to return if x is NULL
 #' @return x if not NULL, otherwise y
 #' @keywords internal
+#' @noRd
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 #' @name .faasr_write_rank_info
@@ -610,7 +618,18 @@ faasr_test <- function(json_path) {
   }
 
   # JSON schema validation if jsonvalidate is available
-  schema_file <- file.path(getwd(), "schema.json")
+  # Try multiple locations for schema.json
+  schema_file <- system.file("schema.json", package = "FaaSrLocal", mustWork = FALSE)
+  if (!nzchar(schema_file) || !file.exists(schema_file)) {
+    pkg_root <- getwd()
+    if (basename(dirname(pkg_root)) == "tests" && basename(pkg_root) == "testthat") {
+      pkg_root <- dirname(dirname(pkg_root))
+    }
+    schema_file <- file.path(pkg_root, "inst", "schema.json")
+  }
+  if (!file.exists(schema_file)) {
+    schema_file <- file.path(getwd(), "schema.json")
+  }
   if (file.exists(schema_file) && requireNamespace("jsonvalidate", quietly = TRUE)) {
     json_txt <- try(jsonlite::toJSON(faasr, auto_unbox = TRUE), silent = TRUE)
     if (!inherits(json_txt, "try-error")) {
