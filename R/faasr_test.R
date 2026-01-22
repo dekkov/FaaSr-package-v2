@@ -40,7 +40,7 @@ faasr_test <- function(json_path) {
   for (d in src_dirs) {
     rfiles <- list.files(d, pattern = "\\.R$", full.names = TRUE)
     for (f in rfiles) {
-      try(source(f, local = .GlobalEnv), silent = TRUE)
+      try(source(f, local = .GlobalEnv), silent = FALSE)
     }
   }
 
@@ -98,131 +98,162 @@ faasr_test <- function(json_path) {
   # This helps us distinguish between "not yet executed" vs "never will execute"
   enqueued_actions <- character()
 
-  # Queue of functions to execute: list(action_name, rank_current, rank_max)
-  queue <- list(list(action_name = wf$FunctionInvoke, rank_current = 1, rank_max = 1))
+  # Dual-queue execution: ready_queue for functions to check, waiting_queue for blocked functions
+  ready_queue <- list(list(action_name = wf$FunctionInvoke, rank_current = 1, rank_max = 1))
+  waiting_queue <- list()
   enqueued_actions <- c(enqueued_actions, wf$FunctionInvoke)
 
-  # Main execution loop
-  while (length(queue) > 0) {
-    # Dequeue next item
-    item <- queue[[1]]
-    queue <- queue[-1]
-
-    action_name <- item$action_name
-    rank_current <- item$rank_current
-    rank_max <- item$rank_max
-
-    # Create unique key for this execution
-    exec_key <- paste0(action_name, "_rank_", rank_current, "/", rank_max)
-
-    # Skip if already executed
-    if (exec_key %in% completed) next
-
-    # Get action definition
-    action <- wf$ActionList[[action_name]]
-    if (is.null(action)) next
-
-    # Check if all required predecessors have completed
-    # Only wait for predecessors that have been enqueued
-    ready <- .faasr_check_ready_simple(action_name, reverse_deps, completed, enqueued_actions)
-    if (!ready) {
-      # Not ready yet - add back to end of queue
-      queue <- c(queue, list(item))
-      next
-    }
-
-    # Execute the function
-    func_name <- action$FunctionName
-    args <- action$Arguments %||% list()
-
-    # Set rank info
-    if (rank_max > 1) {
-      rank_info <- paste0(rank_current, "/", rank_max)
-      .faasr_write_rank_info(rank_info, state_dir)
-      cli::cli_h2(sprintf("Running %s (%s) - Rank %s", action_name, func_name, rank_info))
-    } else {
-      .faasr_write_rank_info(NULL, state_dir)
-      cli::cli_h2(sprintf("Running %s (%s)", action_name, func_name))
-    }
-
-    # Check function exists
-    if (!exists(func_name, mode = "function", envir = .GlobalEnv)) {
-      stop(sprintf("Function not found in environment: %s (action %s)", func_name, action_name))
-    }
-
-    # Create isolated working directory
-    run_dir <- file.path(temp_dir, action_name)
-    if (!dir.exists(run_dir)) dir.create(run_dir, recursive = TRUE)
-    orig_wd <- getwd()
-    Sys.setenv(FAASR_DATA_ROOT = faasr_data_wd)
-    setwd(run_dir)
-
-    # Execute function
-    f <- get(func_name, envir = .GlobalEnv)
-    res <- try(do.call(f, args), silent = TRUE)
-    if (inherits(res, "try-error")) {
-      cli::cli_alert_danger(as.character(res))
-      setwd(orig_wd)  # Restore before stopping
-      stop(sprintf("Error executing %s", func_name))
-    }
-
-    # Restore working directory after execution
-    setwd(orig_wd)
+  # Main execution loop (dual-queue BFS)
+  while (length(ready_queue) > 0 || length(waiting_queue) > 0) {
     
-    # Mark this execution as complete
-    completed <- c(completed, exec_key)
+    # Deadlock detection: ready queue empty but waiting queue has items
+    if (length(ready_queue) == 0 && length(waiting_queue) > 0) {
+      waiting_names <- sapply(waiting_queue, function(x) x$action_name)
+      stop(sprintf("Deadlock detected: %d functions waiting but none can execute: %s",
+                   length(waiting_queue), paste(unique(waiting_names), collapse = ", ")))
+    }
 
-    # Mark action as done (only after final rank)
-    if (rank_current == rank_max) {
-      utils::write.table("TRUE", file = file.path(state_dir, paste0(action_name, ".done")),
-                        row.names = FALSE, col.names = FALSE)
+    # Process ready queue
+    if (length(ready_queue) > 0) {
+      # Dequeue next item from ready queue
+      item <- ready_queue[[1]]
+      ready_queue <- ready_queue[-1]
 
-      # Enqueue successors based on InvokeNext
-      nexts <- action$InvokeNext %||% list()
-      if (is.character(nexts)) nexts <- as.list(nexts)
+      action_name <- item$action_name
+      rank_current <- item$rank_current
+      rank_max <- item$rank_max
 
-      for (nx in nexts) {
-        if (is.character(nx)) {
-          # Simple successor: "funcB" or "funcB(3)"
-          parsed <- .faasr_parse_invoke_next_string(nx)
-          # Mark as enqueued (only track action name, not ranks)
-          if (!(parsed$func_name %in% enqueued_actions)) {
-            enqueued_actions <- c(enqueued_actions, parsed$func_name)
-          }
-          for (r in 1:parsed$rank) {
-            queue <- c(queue, list(list(
-              action_name = parsed$func_name,
-              rank_current = r,
-              rank_max = parsed$rank
-            )))
-          }
-        } else if (is.list(nx)) {
-          # Conditional: {True: [...], False: [...]}
-          # Only follow the branch that matches the result
-          branch <- NULL
-          if (isTRUE(res) && !is.null(nx$True)) {
-            branch <- nx$True
-          } else if (identical(res, FALSE) && !is.null(nx$False)) {
-            branch <- nx$False
-          }
+      # Create unique key for this execution
+      exec_key <- paste0(action_name, "_rank_", rank_current, "/", rank_max)
 
-          if (!is.null(branch)) {
-            for (b in branch) {
-              parsed <- .faasr_parse_invoke_next_string(b)
-              # Mark as enqueued
-              if (!(parsed$func_name %in% enqueued_actions)) {
-                enqueued_actions <- c(enqueued_actions, parsed$func_name)
-              }
-              for (r in 1:parsed$rank) {
-                queue <- c(queue, list(list(
-                  action_name = parsed$func_name,
-                  rank_current = r,
-                  rank_max = parsed$rank
-                )))
+      # Skip if already executed
+      if (exec_key %in% completed) next
+
+      # Get action definition
+      action <- wf$ActionList[[action_name]]
+      if (is.null(action)) next
+
+      # Check if all required predecessors have completed
+      # Only wait for predecessors that have been enqueued
+      ready <- .faasr_check_ready_simple(action_name, reverse_deps, completed, enqueued_actions)
+      
+      if (!ready) {
+        # Not ready yet - move to waiting queue (not back to ready queue)
+        waiting_queue <- c(waiting_queue, list(item))
+        next
+      }
+
+      # Execute the function
+      func_name <- action$FunctionName
+      args <- action$Arguments %||% list()
+
+      # Set rank info
+      if (rank_max > 1) {
+        rank_info <- paste0(rank_current, "/", rank_max)
+        .faasr_write_rank_info(rank_info, state_dir)
+        cli::cli_h2(sprintf("Running %s (%s) - Rank %s", action_name, func_name, rank_info))
+      } else {
+        .faasr_write_rank_info(NULL, state_dir)
+        cli::cli_h2(sprintf("Running %s (%s)", action_name, func_name))
+      }
+
+      # Check function exists
+      if (!exists(func_name, mode = "function", envir = .GlobalEnv)) {
+        stop(sprintf("Function not found in environment: %s (action %s)", func_name, action_name))
+      }
+
+      # Create isolated working directory
+      run_dir <- file.path(temp_dir, action_name)
+      if (!dir.exists(run_dir)) dir.create(run_dir, recursive = TRUE)
+      orig_wd <- getwd()
+      Sys.setenv(FAASR_DATA_ROOT = faasr_data_wd)
+      setwd(run_dir)
+
+      # Execute function
+      f <- get(func_name, envir = .GlobalEnv)
+      res <- try(do.call(f, args), silent = TRUE)
+      if (inherits(res, "try-error")) {
+        cli::cli_alert_danger(as.character(res))
+        setwd(orig_wd)  # Restore before stopping
+        stop(sprintf("Error executing %s", func_name))
+      }
+
+      # Restore working directory after execution
+      setwd(orig_wd)
+      
+      # Mark this execution as complete
+      completed <- c(completed, exec_key)
+
+      # Mark action as done (only after final rank)
+      if (rank_current == rank_max) {
+        utils::write.table("TRUE", file = file.path(state_dir, paste0(action_name, ".done")),
+                          row.names = FALSE, col.names = FALSE)
+
+        # Enqueue successors based on InvokeNext
+        nexts <- action$InvokeNext %||% list()
+        if (is.character(nexts)) nexts <- as.list(nexts)
+
+        for (nx in nexts) {
+          if (is.character(nx)) {
+            # Simple successor: "funcB" or "funcB(3)"
+            parsed <- .faasr_parse_invoke_next_string(nx)
+            # Mark as enqueued (only track action name, not ranks)
+            if (!(parsed$func_name %in% enqueued_actions)) {
+              enqueued_actions <- c(enqueued_actions, parsed$func_name)
+            }
+            for (r in 1:parsed$rank) {
+              ready_queue <- c(ready_queue, list(list(
+                action_name = parsed$func_name,
+                rank_current = r,
+                rank_max = parsed$rank
+              )))
+            }
+          } else if (is.list(nx)) {
+            # Conditional: {True: [...], False: [...]}
+            # Only follow the branch that matches the result
+            branch <- NULL
+            if (isTRUE(res) && !is.null(nx$True)) {
+              branch <- nx$True
+            } else if (identical(res, FALSE) && !is.null(nx$False)) {
+              branch <- nx$False
+            }
+
+            if (!is.null(branch)) {
+              for (b in branch) {
+                parsed <- .faasr_parse_invoke_next_string(b)
+                # Mark as enqueued
+                if (!(parsed$func_name %in% enqueued_actions)) {
+                  enqueued_actions <- c(enqueued_actions, parsed$func_name)
+                }
+                for (r in 1:parsed$rank) {
+                  ready_queue <- c(ready_queue, list(list(
+                    action_name = parsed$func_name,
+                    rank_current = r,
+                    rank_max = parsed$rank
+                  )))
+                }
               }
             }
           }
         }
+      }
+
+      # Scan and promote: check waiting queue for functions that are now ready
+      if (length(waiting_queue) > 0) {
+        still_waiting <- list()
+        for (waiting_item in waiting_queue) {
+          waiting_ready <- .faasr_check_ready_simple(
+            waiting_item$action_name, reverse_deps, completed, enqueued_actions
+          )
+          if (waiting_ready) {
+            # Promote to ready queue
+            ready_queue <- c(ready_queue, list(waiting_item))
+          } else {
+            # Keep in waiting queue
+            still_waiting <- c(still_waiting, list(waiting_item))
+          }
+        }
+        waiting_queue <- still_waiting
       }
     }
   }
@@ -385,16 +416,17 @@ faasr_test <- function(json_path) {
   adj
 }
 
-#' @name .faasr_check_workflow_cycle_local
-#' @title Detect cycles in workflow graph
+#' @name .faasr_check_workflow_cycle_bfs
+#' @title Detect cycles in workflow graph using BFS
 #' @description
-#' Internal function to detect cycles in the workflow graph using depth-first search.
+#' Internal function to detect cycles in the workflow graph using BFS traversal.
+#' Uses a three-state tracking system (unvisited=0, in_progress=1, done=2) to detect back-edges.
 #' Workflows must be acyclic (DAG) to be valid.
 #' @param faasr List containing the parsed workflow configuration
 #' @param start_node Character string name of the starting function
 #' @return TRUE if no cycles detected, stops with error if cycle found
 #' @keywords internal
-.faasr_check_workflow_cycle_local <- function(faasr, start_node) {
+.faasr_check_workflow_cycle_bfs <- function(faasr, start_node) {
   action_list <- faasr$ActionList
   if (is.null(action_list) || !length(action_list)) {
     stop("invalid action list")
@@ -403,36 +435,70 @@ faasr_test <- function(json_path) {
     stop("invalid start node")
   }
 
+  # Build adjacency list
+
   adj <- .faasr_build_adjacency(action_list)
 
-  visited <- new.env(parent = emptyenv())
-  stack <- new.env(parent = emptyenv())
+  # State tracking: 0=unvisited, 1=in_progress, 2=done
+  state <- new.env(parent = emptyenv())
+  for (node in names(action_list)) {
+    assign(node, 0L, envir = state)
+  }
 
-  is_cyclic <- function(node) {
+  # BFS queue - each entry is list(node, phase) where phase="enter" or "exit"
+  queue <- list(list(node = start_node, phase = "enter"))
+
+  while (length(queue) > 0) {
+    # Pop from front
+    item <- queue[[1]]
+    queue <- queue[-1]
+
+    node <- item$node
+    phase <- item$phase
+
+    # Validate node exists
     if (!(node %in% names(action_list))) {
       stop(sprintf("invalid function trigger: %s", node))
     }
-    if (isTRUE(get0(node, envir = stack, inherits = FALSE, ifnotfound = FALSE))) {
-      return(TRUE)
-    }
-    assign(node, TRUE, envir = stack)
-    assign(node, TRUE, envir = visited)
-    nbrs <- adj[[node]]
-    if (!is.null(nbrs) && length(nbrs)) {
-      for (nbr in nbrs) {
-        if (!isTRUE(get0(nbr, envir = visited, inherits = FALSE, ifnotfound = FALSE))) {
-          if (is_cyclic(nbr)) return(TRUE)
-        } else if (isTRUE(get0(nbr, envir = stack, inherits = FALSE, ifnotfound = FALSE))) {
-          return(TRUE)
+
+    current_state <- get(node, envir = state)
+
+    if (phase == "enter") {
+      if (current_state == 1L) {
+        # Already in progress - found a cycle (back edge)
+        stop("cycle detected")
+      }
+      if (current_state == 2L) {
+        # Already fully processed - skip
+        next
+      }
+
+      # Mark as in_progress
+      assign(node, 1L, envir = state)
+
+      # Add exit phase to front of queue (will be processed after all successors)
+      queue <- c(list(list(node = node, phase = "exit")), queue)
+
+      # Add all successors to front of queue (process depth-first within BFS)
+      successors <- adj[[node]]
+      if (!is.null(successors) && length(successors) > 0) {
+        for (succ in rev(successors)) {
+          succ_state <- get(succ, envir = state)
+          if (succ_state == 1L) {
+            # Successor is in_progress - cycle detected
+            stop("cycle detected")
+          }
+          if (succ_state == 0L) {
+            # Add unvisited successors to front
+            queue <- c(list(list(node = succ, phase = "enter")), queue)
+          }
         }
       }
-    }
-    assign(node, FALSE, envir = stack)
-    FALSE
-  }
 
-  if (is_cyclic(start_node)) {
-    stop("cycle detected")
+    } else if (phase == "exit") {
+      # Mark as done
+      assign(node, 2L, envir = state)
+    }
   }
 
   TRUE
@@ -565,8 +631,8 @@ faasr_test <- function(json_path) {
     }
   }
 
-  # Workflow cycle check (DFS on ActionList graph)
-  graph_ok <- try(.faasr_check_workflow_cycle_local(faasr, faasr$FunctionInvoke), silent = TRUE)
+  # Workflow cycle check (BFS on ActionList graph)
+  graph_ok <- try(.faasr_check_workflow_cycle_bfs(faasr, faasr$FunctionInvoke), silent = TRUE)
   if (inherits(graph_ok, "try-error")) {
     return("cycle errors")
   }

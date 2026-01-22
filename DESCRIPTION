@@ -1,7 +1,7 @@
 Type: Package
-Package: FaaSrLocal
+Package: FaaSrLocal (need to be decided)
 Title: FaaSr Local Test Development Package
-Version: 2.0.0
+Version: 1.0.0
 Authors@R: c(person("Figueiredo", "Renato", role = c("aut", "cre", "ths", "cph"),
                     email = "renato.figueiredo@oregonstate.edu",
                     comment = c(ORCID = "0000-0001-9841-6060")),
@@ -41,4 +41,4 @@ Suggests:
     knitr,
     rmarkdown
 Encoding: UTF-8
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3

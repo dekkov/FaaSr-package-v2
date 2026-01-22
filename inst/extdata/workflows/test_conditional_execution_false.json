@@ -21,7 +21,7 @@
   },
   "ActionList": {
     "start-function": {
-      "FunctionName": "return",
+      "FunctionName": "faasr_return",
       "FaaSServer": "My_GitHub_Account",
       "Type": "R",
       "Arguments": {
@@ -30,7 +30,7 @@
       "InvokeNext": [{"True": ["end-function"], "False": ["rank-function(3)"]}]
     },
     "end-function": {
-      "FunctionName": "return",
+      "FunctionName": "faasr_return",
       "FaaSServer": "My_GitHub_Account",
       "Type": "R",
       "Arguments": {

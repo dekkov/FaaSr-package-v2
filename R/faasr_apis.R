@@ -206,10 +206,10 @@ faasr_log <- function(log_message) {
 #' }
 #' }
 faasr_rank <- function() {
+
   # Try to find the rank info file in the temp directory
   temp_dir <- file.path(.fa_local_root(), "temp", "faasr_state_info")
   rank_file <- file.path(temp_dir, "current_rank_info.txt")
-  
   if (!file.exists(rank_file)) {
     return(list())
   }
@@ -221,12 +221,13 @@ faasr_rank <- function() {
   }
   
   # Parse rank_info which is in format "currentRank/maxRank"
-  parts <- unlist(strsplit(rank_info, "[/]"))
-  if (length(parts) == 2) {
+  # Use the first line only and trim whitespace to avoid empty splits.
+  rank_line <- trimws(rank_info)
+  parts <- strsplit(rank_line, "/", fixed = TRUE)[[1]]
+  if (length(parts) == 2 && nzchar(parts[1]) && nzchar(parts[2])) {
     result <- list(rank = parts[1], max_rank = parts[2])
     return(result)
   }
-
 }
 
 

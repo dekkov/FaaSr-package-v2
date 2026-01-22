@@ -7,9 +7,8 @@ rank <- function() {
   } else {
     "not available"
   })
-  
+
   faasr_log(msg)
-  cat(msg, "\n")
   
   invisible(rank_info)
 }
