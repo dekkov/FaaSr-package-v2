@@ -1,0 +1,204 @@
+---
+title: "Reference manual"
+output: rmarkdown::html_vignette
+description: >
+  Reference manual for FaaSr users.
+vignette: >
+  %\VignetteIndexEntry{Reference manual}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r, echo = FALSE, message = FALSE}
+knitr::opts_chunk$set(collapse = T, comment = "#>")
+options(tibble.print_min = 4L, tibble.print_max = 4L)
+library(FaaSrLocal)
+set.seed(1014)
+```
+
+## Local FaaSr Execution
+
+This package helps users simulate the entire FaaSr workflow without the need for interacting without 
+Cloud-related interactions. This give the user the opportunity to verify that their workflow are behaving
+correctly before moving into actual cloud execution.
+
+This local execution requires the FaaSr JSON workflow to match the schema with valid functions and ActionList.
+However, credentials for Cloud Platforms and S3 Storage or ActionContainers  aren't needed to be specified and won't be used. 
+
+## Getting Started
+
+### File Structure Setup
+
+To use FaaSr-Local, you need to organize your project files as follows:
+
+```
+your-project/
+├── workflow.json              # Your FaaSr workflow configuration (you will be passing this path)
+├── faasr_data/                # Created automatically by faasr_test()
+│   ├── functions/             # (Optional) User R functions
+│   ├── files/                 # Simulated S3 storage
+│   ├── logs/                  # Log files
+│   └── temp/                  # Temporary execution files
+└── my_functions.R             # (Optional) Your R functions
+```
+
+**Key Components:**
+
+1. **Workflow JSON file**: Your FaaSr workflow configuration (can be anywhere; you pass the path to `faasr_test()`)
+
+2. **R Functions**: Your workflow functions can be stored in several locations:
+   - In the package's `inst/extdata/functions/` directory (for package development)
+   - In `faasr_data/functions/` in your working directory
+   - As standalone R files that you source before calling `faasr_test()`
+
+3. **faasr_data folder**: Automatically created by `faasr_test()` to simulate cloud infrastructure:
+   - `files/` - Simulates S3 bucket storage for file operations
+   - `logs/` - Stores execution logs from `faasr_log()` calls
+   - `temp/` - Temporary workspace for function execution
+
+### Creating a Workflow Configuration
+
+The workflow JSON configuration file is [described by the FaaSr JSON schema](https://github.com/FaaSr/FaaSr-Backend/blob/main/FaaSr_py/FaaSr.schema.json).
+
+**Recommended approach**: Use the [FaaSr workflow builder](https://faasr.io/FaaSr-workflow-builder/) to create and manage your workflow configuration files with a visual interface.
+
+
+### faasr_test
+
+Usage: `faasr_test(json_path)`
+
+`json_path` is a required argument and specifies the path of a FaaSr workflow configuration file
+
+This is the only function that you need to call in order to run this local test. 
+It loads the JSON-formatted workflow configuration file from the path specified by `json_path` and execute the
+functions in the order specified in the workflow.
+
+## FaaSr APIs
+
+These are the FaaSr functions that users add to their R functions. 
+They are used to read and write from/to S3 buckets and to generate logs for debugging. 
+This package will simulate these behaviour using `faasr_data` folder as a bucket in S3 Storage.
+
+### faasr_put_file
+
+Usage: `faasr_put_file(server_name = NULL, local_folder = ".", local_file, remote_folder = "", remote_file)`
+
+Uploads a file from the local filesystem to the local FaaSr storage (simulating S3 bucket upload).
+
+**Parameters:**
+- `server_name`:  String specifying the server name (ignored in local implementation)
+- `local_folder`:  String path to the local folder containing the file to upload (default: ".")
+- `local_file`:  String name of the local file to upload (required)
+- `remote_folder`:  String path to the remote folder where the file will be stored (default: "")
+- `remote_file`:  String name for the file in remote storage (required)
+
+**Example:**
+```r
+faasr_put_file(local_file="output.csv", remote_folder="myfolder", remote_file="myoutput.csv")
+```
+### faasr_get_file
+
+Usage: `faasr_get_file(server_name = NULL, remote_folder = "", remote_file, local_folder = ".", local_file)`
+
+Downloads a file from the local FaaSr storage to the local filesystem (simulating S3 bucket download).
+
+**Parameters:**
+- `server_name`:  String specifying the server name (ignored in local implementation)
+- `remote_folder`:  String path to the remote folder containing the file to download (default: "")
+- `remote_file`:  String name of the remote file to download (required)
+- `local_folder`:  String path to the local folder where the file will be saved (default: ".")
+- `local_file`:  String name for the file in local storage (required)
+
+**Example:**
+```r
+faasr_get_file(remote_folder="myfolder", remote_file="myinput1.csv", local_file="input1.csv")
+faasr_get_file(server_name="My_Minio_Bucket", remote_file="myinput2.csv", local_file="input2.csv")
+```
+
+### faasr_delete_file
+
+Usage: `faasr_delete_file(server_name = NULL, remote_folder = "", remote_file)`
+
+Deletes a file from the local FaaSr storage (simulating S3 bucket file deletion).
+
+**Parameters:**
+- `server_name`: Character string specifying the server name (ignored in local implementation)
+- `remote_folder`: Character string path to the remote folder containing the file to delete (default: "")
+- `remote_file`: Character string name of the remote file to delete (required)
+
+**Example:**
+```r
+faasr_delete_file(remote_folder="myfolder", remote_file="myoutput.csv")
+faasr_delete_file(server_name="My_Minio_Bucket", remote_file="myoutput.csv")
+```
+
+### faasr_get_folder_list
+
+Usage: `faasr_get_folder_list(server_name = NULL, faasr_prefix = "")`
+
+Lists all files in the local FaaSr storage, optionally filtered by a prefix (simulating S3 bucket listing).
+
+**Parameters:**
+- `server_name`: Character string specifying the server name (ignored in local implementation)
+- `faasr_prefix`: Character string prefix to filter file names (optional, default: "")
+
+**Returns:** Character vector of file names matching the criteria
+
+**Example:**
+```r
+mylist1 <- faasr_get_folder_list(server_name="My_Minio_Bucket", faasr_prefix="myfolder")
+mylist2 <- faasr_get_folder_list(server_name="My_Minio_Bucket", faasr_prefix="myfolder/mysubfolder")
+```
+
+### faasr_log
+
+Usage: `faasr_log(log_message)`
+
+Appends a log message with timestamp to the local FaaSr log file. This is useful for debugging and tracking workflow execution.
+
+**Parameters:**
+- `log_message`: Character string message to log (required)
+
+**Example:**
+```r
+log_msg <- paste0('Function compute_sum finished; output written to ', folder, '/', output, ' in default S3 bucket')
+faasr_log(log_msg)
+```
+
+### faasr_rank
+
+Usage: `faasr_rank()`
+
+Returns the current rank information for the executing function in a parallel workflow. This is useful when functions are executed in parallel and need to know their position in the execution order.
+
+**Returns:** List containing `rank` and `max_rank`, or empty list if no rank information is available
+
+**Example:**
+```r
+# Get current rank information
+rank_info <- faasr_rank()
+if (length(rank_info) > 0) {
+  cat("Current rank:", rank_info$rank, "of", rank_info$max_rank, "\n")
+}
+```
+
+### faasr_invocation_id
+
+Usage: `faasr_invocation_id()`
+
+Returns the invocation ID for the current workflow execution. This unique identifier can be used to track and correlate logs and outputs from a specific workflow run.
+
+**Returns:** Character string invocation ID, or NULL if not available
+
+**Example:**
+```r
+# Get current invocation ID
+inv_id <- faasr_invocation_id()
+if (!is.null(inv_id)) {
+  cat("Invocation ID:", inv_id, "\n")
+}
+```
+
+
+
+
