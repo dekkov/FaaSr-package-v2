@@ -10,7 +10,7 @@ test_that("file upload/download/delete workflow executes correctly with ordered 
   if (!file.exists(json_path)) {
     # Fall back to installed package location
     json_path <- system.file("extdata", "workflows", "test_basic_execution.json", 
-                             package = "FaaSr")
+                             package = "FaaSrLocal")
   }
   
   # Skip if workflow file doesn't exist

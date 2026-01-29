@@ -10,7 +10,7 @@ test_that("parallel rank execution workflow executes correctly with rank logging
   if (!file.exists(json_path)) {
     # Fall back to installed package location
     json_path <- system.file("extdata", "workflows", "test_rank_execution.json", 
-                             package = "FaaSr")
+                             package = "FaaSrLocal")
   }
   
   # Skip if workflow file doesn't exist
