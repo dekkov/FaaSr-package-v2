@@ -30,7 +30,7 @@ faasr_test <- function(json_path) {
   
   # Source user function
   src_dirs <- c(
-    system.file("extdata", "functions", package = "FaaSr", mustWork = FALSE), #for testthat
+    system.file("extdata", "functions", package = "FaaSrLocal", mustWork = FALSE), #for testthat
     file.path(pkg_root, "inst", "extdata", "functions"), #for testthat
     file.path(pkg_root, "R"),
     file.path(getwd(), "faasr_data", "functions")
