@@ -11,6 +11,8 @@
 ^\.idea$
 ^\.DS_Store$
 ^\.gitignore$
+^\.Rhistory$
+^\.RData$
 ^\.git$
 ^_pkgdown\.yml$
 ^docs$

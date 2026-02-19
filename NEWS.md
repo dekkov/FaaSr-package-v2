@@ -1,5 +1,14 @@
 # FaaSr 2.0.0
-## New Package: FaaSr Local Execution Environment
+
+* This is a major update: the FaaSr R package has been repurposed as a **local workflow
+  testing and development environment**. It no longer requires cloud infrastructure or
+  credentials to run FaaSr workflows.
+* The core backend execution logic has been migrated to the
+  [FaaSr-Backend](https://github.com/FaaSr/FaaSr-Backend) repository, which handles
+  production deployment across GitHub Actions, AWS Lambda, OpenWhisk, Google Cloud,
+  and SLURM.
+* Use this package to develop and validate FaaSr workflow JSON configurations locally
+  before deploying to any cloud FaaS platform via the backend.
 
 
 
