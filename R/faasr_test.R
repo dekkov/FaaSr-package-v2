@@ -30,7 +30,7 @@ faasr_test <- function(json_path) {
   
   # Source user function
   src_dirs <- c(
-    system.file("extdata", "functions", package = "FaaSrLocal", mustWork = FALSE), #for testthat
+    system.file("extdata", "functions", package = "FaaSr", mustWork = FALSE), #for testthat
     file.path(pkg_root, "inst", "extdata", "functions"), #for testthat
     file.path(pkg_root, "R"),
     file.path(getwd(), "faasr_data", "functions")
@@ -76,7 +76,7 @@ faasr_test <- function(json_path) {
 
   # Find or download schema
   # Try: 1) installed package, 2) source inst/, 3) working dir, 4) download
-  schema_repo_path <- system.file("schema.json", package = "FaaSrLocal", mustWork = FALSE)
+  schema_repo_path <- system.file("schema.json", package = "FaaSr", mustWork = FALSE)
   if (!nzchar(schema_repo_path) || !file.exists(schema_repo_path)) {
     schema_repo_path <- file.path(pkg_root, "inst", "schema.json")
   }
@@ -619,7 +619,7 @@ faasr_test <- function(json_path) {
 
   # JSON schema validation if jsonvalidate is available
   # Try multiple locations for schema.json
-  schema_file <- system.file("schema.json", package = "FaaSrLocal", mustWork = FALSE)
+  schema_file <- system.file("schema.json", package = "FaaSr", mustWork = FALSE)
   if (!nzchar(schema_file) || !file.exists(schema_file)) {
     pkg_root <- getwd()
     if (basename(dirname(pkg_root)) == "tests" && basename(pkg_root) == "testthat") {

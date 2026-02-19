@@ -7,7 +7,7 @@ test_that("TRUE branch is taken when function returns TRUE", {
   json_path <- file.path("..", "..", "inst", "extdata", "workflows", "test_conditional_execution_true.json")
   if (!file.exists(json_path)) {
     json_path <- system.file("extdata", "workflows", "test_conditional_execution_true.json", 
-                             package = "FaaSrLocal")
+                             package = "FaaSr")
   }
   
   if (!file.exists(json_path)) {
@@ -55,7 +55,7 @@ test_that("FALSE branch is taken when function returns FALSE", {
   json_path <- file.path("..", "..", "inst", "extdata", "workflows", "test_conditional_execution_false.json")
   if (!file.exists(json_path)) {
     json_path <- system.file("extdata", "workflows", "test_conditional_execution_false.json", 
-                             package = "FaaSrLocal")
+                             package = "FaaSr")
   }
   
   if (!file.exists(json_path)) {

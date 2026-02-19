@@ -16,7 +16,7 @@ This is a new package submission to CRAN.
 
 ## About This Package
 
-FaaSr-Local is a companion package to the FaaSr package (available on CRAN). It provides a local testing environment for FaaSr workflows, allowing developers to validate and test their Function-as-a-Service workflows locally before deploying to cloud platforms.
+FaaSr is now acompanion package to the FaaSr package (available on CRAN). It provides a local testing environment for FaaSr workflows, allowing developers to validate and test their Function-as-a-Service workflows locally before deploying to cloud platforms.
 
 Key features:
 * JSON workflow validation against FaaSr schema

@@ -2,5 +2,5 @@
 
 library(testthat)
 
-test_check("FaaSrLocal")
+test_check("FaaSr")
 
