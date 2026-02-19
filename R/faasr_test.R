@@ -74,18 +74,17 @@ faasr_test <- function(json_path) {
     if (length(to_delete)) unlink(to_delete, recursive = TRUE, force = TRUE)
   }
 
-  # Find or download schema
-  # Try: 1) installed package, 2) source inst/, 3) working dir, 4) download
-  schema_repo_path <- system.file("schema.json", package = "FaaSr", mustWork = FALSE)
-  if (!nzchar(schema_repo_path) || !file.exists(schema_repo_path)) {
-    schema_repo_path <- file.path(pkg_root, "inst", "schema.json")
-  }
-  if (!file.exists(schema_repo_path)) {
-    schema_repo_path <- file.path(getwd(), "schema.json")
-  }
-  if (!file.exists(schema_repo_path)) {
-    schema_url <- "https://raw.githubusercontent.com/FaaSr/FaaSr-Backend/main/FaaSr_py/FaaSr.schema.json"
-    try(utils::download.file(schema_url, schema_repo_path, quiet = TRUE), silent = TRUE)
+  # Download the latest schema from FaaSr-Backend, overriding any existing local copy
+  schema_url <- "https://raw.githubusercontent.com/FaaSr/FaaSr-Backend/main/FaaSr_py/FaaSr.schema.json"
+  schema_repo_path <- file.path(pkg_root, "inst", "schema.json")
+  if (!dir.exists(dirname(schema_repo_path))) dir.create(dirname(schema_repo_path), recursive = TRUE)
+  dl_result <- try(utils::download.file(schema_url, schema_repo_path, quiet = TRUE), silent = TRUE)
+  if (inherits(dl_result, "try-error") || !file.exists(schema_repo_path)) {
+    # Fall back to local copies if download fails
+    schema_repo_path <- system.file("schema.json", package = "FaaSr", mustWork = FALSE)
+    if (!nzchar(schema_repo_path) || !file.exists(schema_repo_path)) {
+      schema_repo_path <- file.path(getwd(), "schema.json")
+    }
   }
 
   # Validate workflow configuration (schema validation + cycle detection)

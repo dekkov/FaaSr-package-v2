@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/spark0510/FaaSr-package/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/spark0510/FaaSr-package/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/FaaSr/FaaSr-Local/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/FaaSr/FaaSr-Local/actions/workflows/R-CMD-check.yaml)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/FaaSr)](https://cran.r-project.org/package=FaaSr)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.07027/status.svg)](https://doi.org/10.21105/joss.07027)
@@ -14,10 +14,13 @@ status](https://www.r-pkg.org/badges/version/FaaSr)](https://cran.r-project.org/
 
 ## Overview
 
-**FaaSr-Local** provides a local execution environment for testing and
-developing [FaaSr](https://faasr.io) workflows without requiring cloud
-infrastructure. Test your workflows on your local machine before
-deploying to the cloud - no credentials, no cloud accounts, no cost.
+**FaaSr-Local** is the local testing and development environment for
+[FaaSr](https://faasr.io) workflows. As of version 2.0.0, the core
+backend execution logic has been migrated to
+[FaaSr-Backend](https://github.com/FaaSr/FaaSr-Backend), which handles
+production deployment across GitHub Actions, AWS Lambda, OpenWhisk,
+Google Cloud, and SLURM. Use this package to develop and validate your
+workflows locally before deploying to any cloud FaaS platform.
 
 FaaSr-Local enables you to:
 
@@ -29,8 +32,9 @@ FaaSr-Local enables you to:
   (upload/download/delete/list) work with local filesystem
 - **Support advanced features** - Conditional branching (True/False
   paths), parallel rank execution, and more
-- **Validate workflows** - JSON schema compliance checking and cycle
-  detection
+- **Validate workflows** - JSON schema always fetched fresh from
+  [FaaSr-Backend](https://github.com/FaaSr/FaaSr-Backend) for
+  up-to-date compliance checking and cycle detection
 - **Debug easily** - Local logging for monitoring and troubleshooting
 
 ## Installation
@@ -70,8 +74,17 @@ library(FaaSr)
 faasr_test("path/to/workflow.json")
 ```
 
-That’s it! Your workflow runs locally with full support for: -
-Conditional branching (True/False paths) - Parallel rank execution -
-File operations (simulated S3) - Logging and monitoring
+That's it! Your workflow runs locally with full support for:
+
+- Conditional branching (True/False paths)
+- Parallel rank execution
+- File operations (simulated S3)
+- Logging and monitoring
+
+## Production Deployment
+
+Once your workflow is validated locally, deploy it to the cloud using
+the [FaaSr-Backend](https://github.com/FaaSr/FaaSr-Backend), which
+supports GitHub Actions, AWS Lambda, OpenWhisk, Google Cloud, and SLURM.
 
 For more information, visit <https://faasr.io>

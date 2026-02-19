@@ -1,0 +1,15 @@
+# R session artifacts
+.Rhistory
+.RData
+.Rproj.user/
+
+# Downloaded/generated files
+inst/schema.json
+
+# Local test data
+faasr_data/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
