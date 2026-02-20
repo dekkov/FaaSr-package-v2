@@ -29,7 +29,7 @@ However, credentials for Cloud Platforms and S3 Storage or ActionContainers  are
 
 ### File Structure Setup
 
-To use FaaSr-Local, you need to organize your project files as follows:
+To use FaaSr-package-v2, you need to organize your project files as follows:
 
 ```
 your-project/

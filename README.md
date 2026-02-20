@@ -1,20 +1,12 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# FaaSr-Local <img src='man/figures/FaaSr.png' align="right" height="139" />
+# FaaSr-package-v2 <img src='man/figures/FaaSr.png' align="right" height="139" />
 
-<!-- badges: start -->
-
-[![R-CMD-check](https://github.com/FaaSr/FaaSr-Local/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/FaaSr/FaaSr-Local/actions/workflows/R-CMD-check.yaml)
-[![CRAN
-status](https://www.r-pkg.org/badges/version/FaaSr)](https://cran.r-project.org/package=FaaSr)
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.07027/status.svg)](https://doi.org/10.21105/joss.07027)
-
-<!-- badges: end -->
 
 ## Overview
 
-**FaaSr-Local** is the local testing and development environment for
+**FaaSr-package-v2** is the local testing and development environment for
 [FaaSr](https://faasr.io) workflows. As of version 2.0.0, the core
 backend execution logic has been migrated to
 [FaaSr-Backend](https://github.com/FaaSr/FaaSr-Backend), which handles
@@ -22,7 +14,7 @@ production deployment across GitHub Actions, AWS Lambda, OpenWhisk,
 Google Cloud, and SLURM. Use this package to develop and validate your
 workflows locally before deploying to any cloud FaaS platform.
 
-FaaSr-Local enables you to:
+FaaSr-package-v2 enables you to:
 
 - **Test workflows locally** - Validate your FaaSr workflows before
   cloud deployment
@@ -43,14 +35,14 @@ Install the development version from GitHub:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("FaaSr/FaaSr-Local")
+devtools::install_github("FaaSr/FaaSr-package-v2")
 ```
 
 ## Quick Start
 
 ### 1. Create Your Project Structure
 
-FaaSr-Local automatically creates a `faasr_data/` directory to simulate
+FaaSr-package-v2 automatically creates a `faasr_data/` directory to simulate
 cloud infrastructure:
 
 ``` r
