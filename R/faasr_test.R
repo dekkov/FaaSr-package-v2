@@ -74,10 +74,9 @@ faasr_test <- function(json_path) {
     if (length(to_delete)) unlink(to_delete, recursive = TRUE, force = TRUE)
   }
 
-  # Download the latest schema from FaaSr-Backend, overriding any existing local copy
+  # Download the latest schema from FaaSr-Backend into the session temp directory
   schema_url <- "https://raw.githubusercontent.com/FaaSr/FaaSr-Backend/main/FaaSr_py/FaaSr.schema.json"
-  schema_repo_path <- file.path(pkg_root, "inst", "schema.json")
-  if (!dir.exists(dirname(schema_repo_path))) dir.create(dirname(schema_repo_path), recursive = TRUE)
+  schema_repo_path <- file.path(tempdir(), "FaaSr_schema.json")
   dl_result <- try(utils::download.file(schema_url, schema_repo_path, quiet = TRUE), silent = TRUE)
   if (inherits(dl_result, "try-error") || !file.exists(schema_repo_path)) {
     # Fall back to local copies if download fails
@@ -620,11 +619,7 @@ faasr_test <- function(json_path) {
   # Try multiple locations for schema.json
   schema_file <- system.file("schema.json", package = "FaaSr", mustWork = FALSE)
   if (!nzchar(schema_file) || !file.exists(schema_file)) {
-    pkg_root <- getwd()
-    if (basename(dirname(pkg_root)) == "tests" && basename(pkg_root) == "testthat") {
-      pkg_root <- dirname(dirname(pkg_root))
-    }
-    schema_file <- file.path(pkg_root, "inst", "schema.json")
+    schema_file <- file.path(tempdir(), "FaaSr_schema.json")
   }
   if (!file.exists(schema_file)) {
     schema_file <- file.path(getwd(), "schema.json")
