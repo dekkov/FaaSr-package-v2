@@ -1,18 +1,18 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# FaaSr-package-v2 <img src='man/figures/FaaSr.png' align="right" height="139" />
+# FaaSr <img src='man/figures/FaaSr.png' align="right" height="139" />
 
 [![R-CMD-check](https://github.com/FaaSr/FaaSr-package-v2/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/FaaSr/FaaSr-package-v2/actions/workflows/R-CMD-check.yaml)
 [![CRAN status](https://www.r-pkg.org/badges/version/FaaSr)](https://cran.r-project.org/package=FaaSr)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.07027/status.svg)](https://doi.org/10.21105/joss.07027)
 
-Start here to learn about FaaSr-package-v2, especially if you used the
+Start here to learn about FaaSr, especially if you used the
 previous version of the FaaSr package before.
 
 ## Introduction
 
-FaaSr-package-v2 is a completely new local execution system. In this
+FaaSr is a completely new local execution system. In this
 article we highlight the differences between the old and the new system.
 
 There are two ways to use FaaSr. The recommended way for development and
@@ -27,14 +27,14 @@ and SLURM. For more information, visit <https://faasr.io>.
 
 ## Transitioning from FaaSr v1
 
-### Requirements for using FaaSr-package-v2
+### Requirements for using FaaSr
 
 First, you need R (>= 3.5.0) installed on your machine.
 
 Second, you need a project directory containing your workflow JSON file
 and your R function scripts.
 
-Third, install FaaSr-package-v2:
+Third, install FaaSr:
 
 ``` r
 # install.packages("devtools")
@@ -42,7 +42,7 @@ devtools::install_github("FaaSr/FaaSr-package-v2")
 ```
 
 Call `faasr_test("path/to/workflow.json")` from your project directory
-to run your workflow locally. FaaSr-package-v2 automatically creates a
+to run your workflow locally. FaaSr automatically creates a
 `faasr_data/` directory to simulate cloud infrastructure.
 
 ### Differences from FaaSr v1
@@ -70,7 +70,7 @@ now focuses exclusively on local testing.
 
 ### Project Structure
 
-FaaSr-package-v2 creates a `faasr_data/` directory automatically to
+FaaSr creates a `faasr_data/` directory automatically to
 simulate cloud infrastructure:
 
 ``` r
