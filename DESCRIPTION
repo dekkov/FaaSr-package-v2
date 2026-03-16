@@ -1,6 +1,6 @@
 Type: Package
 Package: FaaSr
-Title: FaaSr Local Test Development Package
+Title: 'FaaSr' Local Test Development Package
 Version: 2.0.0
 Authors@R: c(person("Figueiredo", "Renato", role = c("aut", "cre", "ths", "cph"),
                     email = "renato.figueiredo@oregonstate.edu",
@@ -15,8 +15,8 @@ Authors@R: c(person("Figueiredo", "Renato", role = c("aut", "cre", "ths", "cph")
              person("Ramrakhiani", "Ashish Tulso", role = "aut")
 	     )
 Maintainer: Figueiredo Renato <renato.figueiredo@oregonstate.edu>
-Description: Provides a local execution environment for testing and developing 'FaaSr' workflows
-    without requiring cloud infrastructure. The 'FaaSr-package-v2' package enables R developers to
+Description: Provides a local execution environment for testing and developing the 'FaaSr' workflows
+    without requiring cloud infrastructure. The 'FaaSr' package enables R developers to
     validate and test workflows locally before deploying to Function-as-a-Service (FaaS) platforms.
     Key features include:
     1) Parsing and validating JSON workflow configurations compliant with the 'FaaSr' schema
